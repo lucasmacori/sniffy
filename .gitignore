@@ -1,0 +1,19 @@
+/**/.env
+**/data/
+**/tmp/
+**/vendor/
+**/dist/
+**/*.db
+**/*.db-journal
+**/*.log
+**/.idea/
+**/.vscode/
+**/coverage.out
+
+# Binaries
+/sniffy
+/cmd/worker/worker
+
+# OS files
+.DS_Store
+Thumbs.db
