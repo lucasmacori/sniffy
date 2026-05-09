@@ -69,10 +69,18 @@ func TestCloner_dirSize(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Create some files
-	os.WriteFile(filepath.Join(tmpDir, "a.txt"), []byte("hello"), 0644)
-	os.WriteFile(filepath.Join(tmpDir, "b.txt"), []byte("world"), 0644)
-	os.MkdirAll(filepath.Join(tmpDir, "sub"), 0755)
-	os.WriteFile(filepath.Join(tmpDir, "sub", "c.txt"), []byte("!"), 0644)
+	if err := os.WriteFile(filepath.Join(tmpDir, "a.txt"), []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmpDir, "b.txt"), []byte("world"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(tmpDir, "sub"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmpDir, "sub", "c.txt"), []byte("!"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	size, err := c.dirSize(tmpDir)
 	if err != nil {
@@ -88,12 +96,24 @@ func TestInspector_GetWorktreeFiles(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Create files
-	os.WriteFile(filepath.Join(tmpDir, "a.txt"), []byte("a"), 0644)
-	os.WriteFile(filepath.Join(tmpDir, "b.go"), []byte("b"), 0644)
-	os.MkdirAll(filepath.Join(tmpDir, ".git"), 0755)
-	os.WriteFile(filepath.Join(tmpDir, ".git", "config"), []byte("git"), 0644)
-	os.MkdirAll(filepath.Join(tmpDir, ".hidden"), 0755)
-	os.WriteFile(filepath.Join(tmpDir, ".hidden", "secret"), []byte("s"), 0644)
+	if err := os.WriteFile(filepath.Join(tmpDir, "a.txt"), []byte("a"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmpDir, "b.go"), []byte("b"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".git"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmpDir, ".git", "config"), []byte("git"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(tmpDir, ".hidden"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tmpDir, ".hidden", "secret"), []byte("s"), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	files, err := i.GetWorktreeFiles(tmpDir)
 	if err != nil {
@@ -123,7 +143,9 @@ func TestInspector_GetFileContent(t *testing.T) {
 	i := NewInspector()
 	tmpDir := t.TempDir()
 	content := []byte("hello world")
-	os.WriteFile(filepath.Join(tmpDir, "test.txt"), content, 0644)
+	if err := os.WriteFile(filepath.Join(tmpDir, "test.txt"), content, 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	got, err := i.GetFileContent(tmpDir, "test.txt")
 	if err != nil {
@@ -144,13 +166,17 @@ func TestInspector_IsBinary(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Text file
-	os.WriteFile(filepath.Join(tmpDir, "text.txt"), []byte("hello"), 0644)
+	if err := os.WriteFile(filepath.Join(tmpDir, "text.txt"), []byte("hello"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	if i.IsBinary(tmpDir, "text.txt") {
 		t.Error("IsBinary(text.txt) = true; want false")
 	}
 
 	// Binary file with null byte
-	os.WriteFile(filepath.Join(tmpDir, "binary.dat"), []byte{0x00, 0x01, 0x02}, 0644)
+	if err := os.WriteFile(filepath.Join(tmpDir, "binary.dat"), []byte{0x00, 0x01, 0x02}, 0644); err != nil {
+		t.Fatal(err)
+	}
 	if !i.IsBinary(tmpDir, "binary.dat") {
 		t.Error("IsBinary(binary.dat) = false; want true")
 	}
@@ -170,14 +196,26 @@ func TestInspector_GetAllCommits(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Initialize git repo
-	exec.Command("git", "init", tmpDir).Run()
-	exec.Command("git", "-C", tmpDir, "config", "user.email", "test@test.com").Run()
-	exec.Command("git", "-C", tmpDir, "config", "user.name", "Test").Run()
+	if err := exec.Command("git", "init", tmpDir).Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "config", "user.email", "test@test.com").Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "config", "user.name", "Test").Run(); err != nil {
+		t.Fatal(err)
+	}
 
 	// Create a commit
-	os.WriteFile(filepath.Join(tmpDir, "a.txt"), []byte("v1"), 0644)
-	exec.Command("git", "-C", tmpDir, "add", ".").Run()
-	exec.Command("git", "-C", tmpDir, "commit", "-m", "first").Run()
+	if err := os.WriteFile(filepath.Join(tmpDir, "a.txt"), []byte("v1"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "add", ".").Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "commit", "-m", "first").Run(); err != nil {
+		t.Fatal(err)
+	}
 
 	commits, err := i.GetAllCommits(context.Background(), tmpDir)
 	if err != nil {
@@ -199,13 +237,25 @@ func TestInspector_GetDiff(t *testing.T) {
 	i := NewInspector()
 	tmpDir := t.TempDir()
 
-	exec.Command("git", "init", tmpDir).Run()
-	exec.Command("git", "-C", tmpDir, "config", "user.email", "test@test.com").Run()
-	exec.Command("git", "-C", tmpDir, "config", "user.name", "Test").Run()
+	if err := exec.Command("git", "init", tmpDir).Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "config", "user.email", "test@test.com").Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "config", "user.name", "Test").Run(); err != nil {
+		t.Fatal(err)
+	}
 
-	os.WriteFile(filepath.Join(tmpDir, "a.txt"), []byte("v1"), 0644)
-	exec.Command("git", "-C", tmpDir, "add", ".").Run()
-	exec.Command("git", "-C", tmpDir, "commit", "-m", "first").Run()
+	if err := os.WriteFile(filepath.Join(tmpDir, "a.txt"), []byte("v1"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "add", ".").Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "commit", "-m", "first").Run(); err != nil {
+		t.Fatal(err)
+	}
 
 	// Get commit hash
 	out, _ := exec.Command("git", "-C", tmpDir, "rev-parse", "HEAD").Output()
@@ -229,17 +279,35 @@ func TestInspector_GetChangedFiles(t *testing.T) {
 	i := NewInspector()
 	tmpDir := t.TempDir()
 
-	exec.Command("git", "init", tmpDir).Run()
-	exec.Command("git", "-C", tmpDir, "config", "user.email", "test@test.com").Run()
-	exec.Command("git", "-C", tmpDir, "config", "user.name", "Test").Run()
+	if err := exec.Command("git", "init", tmpDir).Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "config", "user.email", "test@test.com").Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "config", "user.name", "Test").Run(); err != nil {
+		t.Fatal(err)
+	}
 
-	os.WriteFile(filepath.Join(tmpDir, "a.txt"), []byte("v1"), 0644)
-	exec.Command("git", "-C", tmpDir, "add", ".").Run()
-	exec.Command("git", "-C", tmpDir, "commit", "-m", "first").Run()
+	if err := os.WriteFile(filepath.Join(tmpDir, "a.txt"), []byte("v1"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "add", ".").Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "commit", "-m", "first").Run(); err != nil {
+		t.Fatal(err)
+	}
 
-	os.WriteFile(filepath.Join(tmpDir, "b.txt"), []byte("v1"), 0644)
-	exec.Command("git", "-C", tmpDir, "add", ".").Run()
-	exec.Command("git", "-C", tmpDir, "commit", "-m", "second").Run()
+	if err := os.WriteFile(filepath.Join(tmpDir, "b.txt"), []byte("v1"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "add", ".").Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "commit", "-m", "second").Run(); err != nil {
+		t.Fatal(err)
+	}
 
 	out, _ := exec.Command("git", "-C", tmpDir, "rev-parse", "HEAD").Output()
 	hash := string(out)
@@ -268,13 +336,25 @@ func TestInspector_GetFileContentAtCommit(t *testing.T) {
 	i := NewInspector()
 	tmpDir := t.TempDir()
 
-	exec.Command("git", "init", tmpDir).Run()
-	exec.Command("git", "-C", tmpDir, "config", "user.email", "test@test.com").Run()
-	exec.Command("git", "-C", tmpDir, "config", "user.name", "Test").Run()
+	if err := exec.Command("git", "init", tmpDir).Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "config", "user.email", "test@test.com").Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "config", "user.name", "Test").Run(); err != nil {
+		t.Fatal(err)
+	}
 
-	os.WriteFile(filepath.Join(tmpDir, "a.txt"), []byte("v1"), 0644)
-	exec.Command("git", "-C", tmpDir, "add", ".").Run()
-	exec.Command("git", "-C", tmpDir, "commit", "-m", "first").Run()
+	if err := os.WriteFile(filepath.Join(tmpDir, "a.txt"), []byte("v1"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "add", ".").Run(); err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", tmpDir, "commit", "-m", "first").Run(); err != nil {
+		t.Fatal(err)
+	}
 
 	out, _ := exec.Command("git", "-C", tmpDir, "rev-parse", "HEAD").Output()
 	hash := string(out)

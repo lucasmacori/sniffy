@@ -370,7 +370,7 @@ func (g *GitHistoryDetector) Detect(ctx context.Context, repoPath string, inspec
 				re := regexp.MustCompile(`\+([0-9]+)`)
 				matches := re.FindStringSubmatch(line)
 				if len(matches) > 1 {
-					fmt.Sscanf(matches[1], "%d", &lineNumber)
+					_, _ = fmt.Sscanf(matches[1], "%d", &lineNumber)
 				}
 				continue
 			}
