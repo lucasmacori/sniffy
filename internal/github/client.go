@@ -223,7 +223,7 @@ func (c *Client) RateLimit(ctx context.Context) (*github.RateLimits, error) {
 		return nil, err
 	}
 
-	rate, resp, err := c.client.RateLimits(ctx)
+	rate, resp, err := c.client.RateLimit.Get(ctx)
 	if err != nil {
 		c.handleRateLimitError(resp)
 		return nil, fmt.Errorf("get rate limit failed: %w", err)

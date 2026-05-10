@@ -11,6 +11,8 @@ interface FindingTableProps {
   page: number
   perPage: number
   onPageChange: (page: number) => void
+  onPerPageChange?: (perPage: number) => void
+  onMarkNotified?: (id: number) => void
 }
 
 export function FindingTable({
@@ -19,6 +21,8 @@ export function FindingTable({
   page,
   perPage,
   onPageChange,
+  onPerPageChange,
+  onMarkNotified,
 }: FindingTableProps) {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const totalPages = Math.ceil(total / perPage)
@@ -157,6 +161,33 @@ export function FindingTable({
                               </div>
                             </div>
                           )}
+                          {onMarkNotified && (
+                            <div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onMarkNotified(finding.id)
+                                }}
+                                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                                  finding.notified
+                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                                type="button"
+                                disabled={finding.notified === 1}
+                              >
+                                {finding.notified ? (
+                                  <>
+                                    <Bell size={12} /> Notified
+                                  </>
+                                ) : (
+                                  <>
+                                    <BellOff size={12} /> Mark as Notified
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -174,26 +205,43 @@ export function FindingTable({
           Showing {(page - 1) * perPage + 1} to{' '}
           {Math.min(page * perPage, total)} of {total} findings
         </p>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onPageChange(page - 1)}
-            disabled={page <= 1}
-            className="rounded border border-gray-300 px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            type="button"
-          >
-            Previous
-          </button>
-          <span className="text-sm text-gray-600">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            onClick={() => onPageChange(page + 1)}
-            disabled={page >= totalPages}
-            className="rounded border border-gray-300 px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            type="button"
-          >
-            Next
-          </button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="per-page" className="text-sm text-gray-600">
+              Per page
+            </label>
+            <select
+              id="per-page"
+              value={perPage}
+              onChange={(e) => onPerPageChange?.(Number(e.target.value))}
+              className="rounded border border-gray-300 bg-white px-2 py-1 text-sm text-gray-700 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+            >
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onPageChange(page - 1)}
+              disabled={page <= 1}
+              className="rounded border border-gray-300 px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              type="button"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-600">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => onPageChange(page + 1)}
+              disabled={page >= totalPages}
+              className="rounded border border-gray-300 px-3 py-1 text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              type="button"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>

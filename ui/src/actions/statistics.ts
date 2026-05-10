@@ -9,7 +9,6 @@ export interface DashboardStats {
   totalCommitsScanned: number
   avgConfidence: number
   notificationRate: number
-  totalScans: number
   totalErrors: number
   avgScanDurationMs: number
 }
@@ -31,7 +30,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       SUM(repositories_scanned) as totalRepos,
       SUM(files_scanned) as totalFiles,
       SUM(commits_scanned) as totalCommits,
-      COUNT(*) as totalScans,
       SUM(errors_encountered) as totalErrors,
       AVG(scan_duration_ms) as avgDuration
     FROM statistics
@@ -40,7 +38,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     totalRepos: number
     totalFiles: number
     totalCommits: number
-    totalScans: number
     totalErrors: number
     avgDuration: number
   }
@@ -52,7 +49,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     totalCommitsScanned: stats.totalCommits || 0,
     avgConfidence: avgConfidence || 0,
     notificationRate: totalFindings > 0 ? (notifiedCount / totalFindings) * 100 : 0,
-    totalScans: stats.totalScans || 0,
     totalErrors: stats.totalErrors || 0,
     avgScanDurationMs: stats.avgDuration || 0,
   }
@@ -89,6 +85,7 @@ export async function getScanPerformance(days: number = 30): Promise<{
   duration: number
 }[]> {
   const db = getDb()
+  // Use parameterized query to prevent SQL injection
   const stmt = db.prepare(`
     SELECT
       DATE(scan_date) as date,
@@ -97,11 +94,11 @@ export async function getScanPerformance(days: number = 30): Promise<{
       SUM(findings_detected) as findings,
       AVG(scan_duration_ms) as duration
     FROM statistics
-    WHERE scan_date >= DATE('now', '-${days} days')
+    WHERE scan_date >= DATE('now', '-' || ? || ' days')
     GROUP BY DATE(scan_date)
     ORDER BY date
   `)
-  return stmt.all() as {
+  return stmt.all(days) as {
     date: string
     repos: number
     files: number

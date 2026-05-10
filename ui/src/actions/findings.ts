@@ -1,6 +1,6 @@
 'use server'
 
-import { getDb } from '@/lib/db'
+import { getDb, getRwDb } from '@/lib/db'
 
 export interface Finding {
   id: number
@@ -87,9 +87,11 @@ export async function getFindings(filter: FindingsFilter = {}): Promise<{
   const perPage = filter.perPage || 25
   const offset = (page - 1) * perPage
 
-  const sortBy = filter.sortBy || 'created_at'
-  const sortOrder = filter.sortOrder || 'desc'
-  const orderClause = `ORDER BY ${sortBy} ${sortOrder.toUpperCase()}`
+  // Validate sortBy against allowlist to prevent SQL injection
+  const ALLOWED_SORT_COLUMNS = ['created_at', 'confidence', 'repository', 'secret_type', 'file_path', 'line_number', 'id']
+  const safeSortBy = ALLOWED_SORT_COLUMNS.includes(filter.sortBy || '') ? (filter.sortBy as string) : 'created_at'
+  const safeSortOrder = filter.sortOrder === 'asc' ? 'ASC' : 'DESC'
+  const orderClause = `ORDER BY ${safeSortBy} ${safeSortOrder}`
 
   const query = `SELECT * FROM findings ${whereClause} ${orderClause} LIMIT ? OFFSET ?`
   const stmt = db.prepare(query)
@@ -120,9 +122,7 @@ export async function getSources(): Promise<string[]> {
 }
 
 export async function markNotified(id: number): Promise<void> {
-  const db = getDb()
-  // Re-open in read-write mode for mutations
-  const rwDb = new (await import('better-sqlite3')).default(process.env.DATABASE_PATH || './data/sniffy.db')
+  const rwDb = getRwDb()
   const stmt = rwDb.prepare('UPDATE findings SET notified = 1 WHERE id = ?')
   stmt.run(id)
   rwDb.close()
@@ -142,14 +142,15 @@ export async function getTopRepositories(limit: number = 10): Promise<{ reposito
 
 export async function getFindingsOverTime(days: number = 30): Promise<{ date: string; count: number }[]> {
   const db = getDb()
+  // Use parameterized query to prevent SQL injection
   const stmt = db.prepare(`
     SELECT DATE(created_at) as date, COUNT(*) as count
     FROM findings
-    WHERE created_at >= DATE('now', '-${days} days')
+    WHERE created_at >= DATE('now', '-' || ? || ' days')
     GROUP BY DATE(created_at)
     ORDER BY date
   `)
-  return stmt.all() as { date: string; count: number }[]
+  return stmt.all(days) as { date: string; count: number }[]
 }
 
 export async function getSecretTypeDistribution(): Promise<{ type: string; count: number }[]> {

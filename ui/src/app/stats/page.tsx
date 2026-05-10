@@ -1,10 +1,11 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
-import { getDashboardStats } from '@/actions/statistics'
+import { useQuery, useIsFetching } from '@tanstack/react-query'
+import { getDashboardStats, getRecentScans } from '@/actions/statistics'
 import { getFindingsOverTime, getSecretTypeDistribution, getTopRepositories, getConfidenceDistribution, getSourceDistribution, getNotificationStatus } from '@/actions/findings'
 import { getScanPerformance } from '@/actions/statistics'
 import { StatCards } from '@/components/StatCards'
+import { RecentScansTable } from '@/components/RecentScansTable'
 import {
   FindingsOverTimeChart,
   SecretTypeChart,
@@ -15,11 +16,11 @@ import {
   ScanPerformanceChart,
 } from '@/components/Charts'
 import { AutoRefresh } from '@/components/AutoRefresh'
-import { BarChart3, RefreshCw } from 'lucide-react'
+import { BarChart3, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useCallback } from 'react'
 
 export default function StatsPage() {
-  const { data: stats, isLoading: statsLoading, refetch: refetchStats, isFetching } = useQuery({
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
     queryKey: ['dashboardStats'],
     queryFn: getDashboardStats,
   })
@@ -59,6 +60,14 @@ export default function StatsPage() {
     queryFn: () => getScanPerformance(30),
   })
 
+  const { data: recentScans, refetch: refetchRecent } = useQuery({
+    queryKey: ['recentScans'],
+    queryFn: () => getRecentScans(50),
+  })
+
+  // Track fetching state across ALL queries
+  const isAnyFetching = useIsFetching() > 0
+
   const handleRefresh = useCallback(() => {
     refetchStats()
     refetchTime()
@@ -68,15 +77,8 @@ export default function StatsPage() {
     refetchSource()
     refetchNotif()
     refetchPerf()
-  }, [refetchStats, refetchTime, refetchTypes, refetchRepos, refetchConfidence, refetchSource, refetchNotif, refetchPerf])
-
-  if (statsLoading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <div className="text-gray-500">Loading statistics...</div>
-      </div>
-    )
-  }
+    refetchRecent()
+  }, [refetchStats, refetchTime, refetchTypes, refetchRepos, refetchConfidence, refetchSource, refetchNotif, refetchPerf, refetchRecent])
 
   return (
     <div className="space-y-6">
@@ -86,19 +88,32 @@ export default function StatsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Statistics</h1>
         </div>
         <div className="flex items-center gap-4">
-          <AutoRefresh onRefresh={handleRefresh} isRefreshing={isFetching} />
+          <AutoRefresh onRefresh={handleRefresh} isRefreshing={isAnyFetching} />
           <button
             onClick={handleRefresh}
-            className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             type="button"
           >
-            <RefreshCw size={16} className={isFetching ? 'animate-spin' : ''} />
+            <RefreshCw size={16} className={isAnyFetching ? 'animate-spin' : ''} />
             Refresh
           </button>
         </div>
       </div>
 
-      <StatCards stats={stats!} />
+      {statsLoading ? (
+        <div className="flex h-64 items-center justify-center">
+          <div className="text-gray-500">Loading statistics...</div>
+        </div>
+      ) : !stats ? (
+        <div className="flex h-64 items-center justify-center rounded-lg border border-red-200 bg-red-50">
+          <div className="flex items-center gap-2 text-red-700">
+            <AlertTriangle size={20} />
+            <span>Failed to load statistics</span>
+          </div>
+        </div>
+      ) : (
+        <StatCards stats={stats} />
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-lg border border-gray-200 bg-white p-4">
@@ -135,6 +150,11 @@ export default function StatsPage() {
           <h2 className="mb-4 text-lg font-semibold text-gray-900">Scan Performance</h2>
           <ScanPerformanceChart data={scanPerformance || []} />
         </div>
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">Recent Scans</h2>
+        <RecentScansTable scans={recentScans || []} />
       </div>
     </div>
   )
