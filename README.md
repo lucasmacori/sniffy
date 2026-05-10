@@ -70,7 +70,7 @@ At minimum you should set:
 ### 3. Build
 
 ```bash
-go build -o sniffy ./cmd/worker
+go build -o sniffy .
 ```
 
 ### 4. Run

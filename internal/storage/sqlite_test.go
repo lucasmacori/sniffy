@@ -116,7 +116,9 @@ func TestStorage_IsDuplicate(t *testing.T) {
 	}
 
 	// Save first
-	s.SaveFinding(finding)
+	if _, err := s.SaveFinding(finding); err != nil {
+		t.Fatalf("SaveFinding() error = %v", err)
+	}
 
 	t.Run("existing finding", func(t *testing.T) {
 		isDup, err := s.IsDuplicate(finding)
@@ -157,7 +159,9 @@ func TestStorage_MarkNotified(t *testing.T) {
 		Source:     "worktree",
 	}
 
-	s.SaveFinding(finding)
+	if _, err := s.SaveFinding(finding); err != nil {
+		t.Fatalf("SaveFinding() error = %v", err)
+	}
 
 	err := s.MarkNotified(finding)
 	if err != nil {

@@ -158,10 +158,29 @@ func (w *Worker) runFreshTrack(ctx context.Context, errChan chan<- error) {
 			default:
 			}
 
+			// Start a new scan cycle for this repo
+			w.stats.StartCycle()
+
 			if err := w.processRepository(ctx, repo); err != nil {
 				log.Printf("[%s] [Fresh Track] Error processing %s: %v",
 					w.config.WorkerID, repo.FullName, err)
 				w.stats.IncrementErrors(1)
+			}
+
+			// End cycle and persist stats immediately after each repo
+			duration := w.stats.EndCycle()
+			currentStats := w.stats.GetCurrentStats()
+			if err := w.storage.SaveScanStats(
+				w.config.WorkerID,
+				currentStats.RepositoriesScanned,
+				currentStats.FilesScanned,
+				currentStats.CommitsScanned,
+				currentStats.FindingsDetected,
+				currentStats.FindingsNotified,
+				currentStats.ErrorsEncountered,
+				duration,
+			); err != nil {
+				log.Printf("[%s] [Fresh Track] Error saving scan stats: %v", w.config.WorkerID, err)
 			}
 
 			// Track the newest repo we've seen
@@ -230,7 +249,6 @@ func (w *Worker) runActiveTrack(ctx context.Context, errChan chan<- error) {
 				consecutiveErrors++
 				log.Printf("[%s] [Active Track] Discovery error on page %d: %v",
 					w.config.WorkerID, page, err)
-				w.stats.IncrementErrors(1)
 
 				backoff := w.calculateBackoff(consecutiveErrors)
 				if w.isRateLimitError(err) {
@@ -263,10 +281,29 @@ func (w *Worker) runActiveTrack(ctx context.Context, errChan chan<- error) {
 				default:
 				}
 
+				// Start a new scan cycle for this repo
+				w.stats.StartCycle()
+
 				if err := w.processRepository(ctx, repo); err != nil {
 					log.Printf("[%s] [Active Track] Error processing %s: %v",
 						w.config.WorkerID, repo.FullName, err)
 					w.stats.IncrementErrors(1)
+				}
+
+				// End cycle and persist stats immediately after each repo
+				duration := w.stats.EndCycle()
+				currentStats := w.stats.GetCurrentStats()
+				if err := w.storage.SaveScanStats(
+					w.config.WorkerID,
+					currentStats.RepositoriesScanned,
+					currentStats.FilesScanned,
+					currentStats.CommitsScanned,
+					currentStats.FindingsDetected,
+					currentStats.FindingsNotified,
+					currentStats.ErrorsEncountered,
+					duration,
+				); err != nil {
+					log.Printf("[%s] [Active Track] Error saving scan stats: %v", w.config.WorkerID, err)
 				}
 			}
 
@@ -306,7 +343,11 @@ func (w *Worker) processRepository(ctx context.Context, repo source.Repository) 
 	if err != nil {
 		return fmt.Errorf("clone failed: %w", err)
 	}
-	defer w.cloner.Cleanup(cloneResult)
+	defer func() {
+		if cleanupErr := w.cloner.Cleanup(cloneResult); cleanupErr != nil {
+			log.Printf("[%s] Warning: cleanup failed: %v", w.config.WorkerID, cleanupErr)
+		}
+	}()
 
 	log.Printf("[%s] Cloned %s to %s", w.config.WorkerID, repo.FullName, cloneResult.Path)
 

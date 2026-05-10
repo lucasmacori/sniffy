@@ -1,0 +1,10 @@
+/node_modules
+/dist
+/.next
+/out
+coverage
+*.log
+.env
+.DS_Store
+/playwright-report
+/test-results
